@@ -1,0 +1,88 @@
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the dataset
+# Replace 'movie_ratings.csv' with the actual path to your movie rating dataset (IMDB, Netflix, or Prime Video)
+data = pd.read_csv('movie_ratings.csv')
+
+# Display first few rows of the dataset
+print(data.head())
+
+# Data Cleaning
+# Handle missing values (if any)
+data.fillna({'rating': 0}, inplace=True)  # Assuming 'rating' is a column where missing values might exist
+
+# Remove duplicates (if any)
+data.drop_duplicates(inplace=True)
+
+# Convert 'Release Date' column to datetime format (if applicable)
+data['Release Date'] = pd.to_datetime(data['Release Date'], errors='coerce')
+
+# Feature Engineering
+# Extract the year from the 'Release Date' (if available)
+data['Release Year'] = data['Release Date'].dt.year
+
+# Aggregating Movie Ratings Metrics
+# Average rating for each movie
+avg_ratings = data.groupby('Movie Title')['Rating'].mean().sort_values(ascending=False).head(10)
+print("\nTop 10 Movies by Average Rating:")
+print(avg_ratings)
+
+# Number of ratings per movie
+ratings_count = data.groupby('Movie Title')['Rating'].count().sort_values(ascending=False).head(10)
+print("\nTop 10 Movies by Number of Ratings:")
+print(ratings_count)
+
+# Distribution of Ratings
+plt.figure(figsize=(10,6))
+sns.histplot(data['Rating'], bins=20, kde=True, color='blue')
+plt.title('Distribution of Movie Ratings')
+plt.xlabel('Rating')
+plt.ylabel('Frequency')
+plt.grid(True)
+plt.show()
+
+# Analyze Ratings by Genre
+# Assuming 'Genre' is a column with multiple genres separated by commas
+# Split genres into multiple rows for analysis
+data_genres = data.assign(Genre=data['Genre'].str.split(',')).explode('Genre')
+
+# Average rating by genre
+avg_rating_by_genre = data_genres.groupby('Genre')['Rating'].mean().sort_values(ascending=False)
+print("\nAverage Rating by Genre:")
+print(avg_rating_by_genre)
+
+# Visualize Average Rating by Genre
+plt.figure(figsize=(10,6))
+sns.barplot(x=avg_rating_by_genre.values, y=avg_rating_by_genre.index, palette='coolwarm')
+plt.title('Average Rating by Genre')
+plt.xlabel('Average Rating')
+plt.ylabel('Genre')
+plt.show()
+
+# Relationship Between Release Year and Ratings
+# Calculate average rating per release year
+avg_rating_by_year = data.groupby('Release Year')['Rating'].mean()
+
+# Plot rating trends over the years
+plt.figure(figsize=(10,6))
+plt.plot(avg_rating_by_year.index, avg_rating_by_year.values, marker='o', linestyle='-', color='green')
+plt.title('Average Movie Rating by Release Year')
+plt.xlabel('Release Year')
+plt.ylabel('Average Rating')
+plt.grid(True)
+plt.show()
+
+# Top-rated Movies by Genre
+# Get top-rated movies within each genre
+top_movies_by_genre = data_genres.groupby(['Genre', 'Movie Title'])['Rating'].mean().reset_index()
+top_movies_by_genre = top_movies_by_genre.loc[top_movies_by_genre.groupby('Genre')['Rating'].idxmax()].sort_values(by='Rating', ascending=False)
+
+print("\nTop-Rated Movies by Genre:")
+print(top_movies_by_genre)
+
+# Save the cleaned and analyzed data to a new CSV file
+data.to_csv('cleaned_movie_ratings.csv', index=False)
